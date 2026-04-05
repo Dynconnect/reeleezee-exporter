@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reeleezee Data Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        .config-bar {
+            background: #ecf0f1;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .config-bar label {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .config-bar input {
+            padding: 8px 12px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            font-size: 14px;
+            flex: 1;
+            max-width: 500px;
+        }
+        .config-bar button {
+            padding: 8px 16px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .config-bar button:hover {
+            background: #2980b9;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
+        .sidebar {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        .sidebar h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        .admin-list {
+            list-style: none;
+        }
+        .admin-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .admin-item:hover {
+            background: #d5dbdb;
+        }
+        .admin-item.active {
+            background: #3498db;
+            color: white;
+        }
+        .admin-item h3 {
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+        .admin-item p {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        .content {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .file-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .file-card {
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .file-card:hover {
+            border-color: #3498db;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .file-card h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .file-card .count {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+        .file-card .size {
+            color: #7f8c8d;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .data-viewer {
+            margin-top: 30px;
+        }
+        .data-viewer h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        .data-table th {
+            background: #34495e;
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+        .data-table td {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .back-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            border: none;
+            font-size: 14px;
+        }
+        .back-button:hover {
+            background: #2980b9;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        .search-box {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        .pagination {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .pagination button {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .pagination button:hover {
+            background: #ecf0f1;
+        }
+        .pagination button.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Reeleezee Data Viewer</h1>
+        <p>Navigate through exported administration data</p>
+    </div>
+
+    <div class="config-bar">
+        <label for="exportPath">Export path:</label>
+        <input type="text" id="exportPath" placeholder="e.g. exports/reeleezee_export_20250101_120000/" value="">
+        <button onclick="loadFromPath()">Load</button>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <h2>Administrations</h2>
+            <input type="text" class="search-box" id="adminSearch" placeholder="Search administrations...">
+            <ul class="admin-list" id="adminList">
+                <li class="loading">Enter the export path above and click Load</li>
+            </ul>
+        </div>
+
+        <div class="content" id="content">
+            <div class="empty-state">
+                <h3>Select an administration</h3>
+                <p>Choose an administration from the sidebar to view its data</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentAdmin = null;
+        let currentData = null;
+        let currentPage = 1;
+        const itemsPerPage = 50;
+
+        function loadFromPath() {
+            const path = document.getElementById('exportPath').value.trim();
+            if (!path) {
+                alert('Please enter the export directory path');
+                return;
+            }
+            window.currentExportPath = path.endsWith('/') ? path : path + '/';
+            loadIndex();
+        }
+
+        async function loadIndex() {
+            const exportPath = window.currentExportPath;
+            if (!exportPath) return;
+
+            try {
+                const response = await fetch(`${exportPath}index.json`);
+                const data = await response.json();
+                renderAdminList(data.administrations);
+            } catch (error) {
+                document.getElementById('adminList').innerHTML =
+                    '<li class="loading">Error loading index.json. Check the export path.</li>';
+                console.error('Error loading index:', error);
+            }
+        }
+
+        function renderAdminList(administrations) {
+            const list = document.getElementById('adminList');
+            list.innerHTML = '';
+
+            administrations.forEach(admin => {
+                const li = document.createElement('li');
+                li.className = 'admin-item';
+                li.innerHTML = `
+                    <h3>${admin.name}</h3>
+                    <p>${admin.total_items} items</p>
+                `;
+                li.onclick = () => loadAdmin(admin);
+                list.appendChild(li);
+            });
+        }
+
+        async function loadAdmin(admin) {
+            currentAdmin = admin;
+            currentPage = 1;
+
+            document.querySelectorAll('.admin-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.closest('.admin-item').classList.add('active');
+
+            try {
+                const exportPath = window.currentExportPath;
+                const response = await fetch(`${exportPath}${admin.index_file}`);
+                const adminIndex = await response.json();
+                renderAdminView(adminIndex);
+            } catch (error) {
+                document.getElementById('content').innerHTML =
+                    '<div class="loading">Error loading administration data</div>';
+                console.error('Error loading admin:', error);
+            }
+        }
+
+        function renderAdminView(adminIndex) {
+            const content = document.getElementById('content');
+            const files = adminIndex.files || {};
+
+            let html = `
+                <h2>${adminIndex.name}</h2>
+                <p style="color: #7f8c8d; margin-bottom: 20px;">Administration ID: ${adminIndex.id}</p>
+                <div class="file-list">
+            `;
+
+            const fileOrder = [
+                { key: 'salesinvoices', label: 'Sales Invoices', icon: '' },
+                { key: 'salesinvoicelines', label: 'Invoice Line Items', icon: '' },
+                { key: 'purchaseinvoices', label: 'Purchase Invoices', icon: '' },
+                { key: 'vendors', label: 'Vendors', icon: '' },
+                { key: 'customers', label: 'Customers', icon: '' },
+                { key: 'products', label: 'Products', icon: '' },
+                { key: 'offerings', label: 'Offerings', icon: '' },
+                { key: 'bankimports', label: 'Bank Imports', icon: '' },
+                { key: 'bankstatements', label: 'Bank Statements', icon: '' },
+                { key: 'exports', label: 'Export Types', icon: '' },
+                { key: 'export_files', label: 'Export Files', icon: '' },
+            ];
+
+            fileOrder.forEach(({ key, label }) => {
+                const file = files[key];
+                if (file) {
+                    html += `
+                        <div class="file-card" onclick="loadFile('${file.filename}', '${key}')">
+                            <h3>${label}</h3>
+                            <div class="count">${file.count} items</div>
+                            <div class="size">${file.size_kb} KB</div>
+                        </div>
+                    `;
+                }
+            });
+
+            html += `</div>`;
+            content.innerHTML = html;
+        }
+
+        async function loadFile(filename, type) {
+            const content = document.getElementById('content');
+            content.innerHTML = '<div class="loading">Loading data...</div>';
+
+            try {
+                const exportPath = window.currentExportPath;
+                const response = await fetch(
+                    `${exportPath}${currentAdmin.directory}/${filename}`
+                );
+                const fileData = await response.json();
+                currentData = fileData.data || [];
+                renderDataTable(fileData.data || [], type);
+            } catch (error) {
+                content.innerHTML = '<div class="loading">Error loading file data</div>';
+                console.error('Error loading file:', error);
+            }
+        }
+
+        function renderDataTable(data, type) {
+            if (!data || data.length === 0) {
+                document.getElementById('content').innerHTML =
+                    '<div class="empty-state"><h3>No data available</h3></div>';
+                return;
+            }
+
+            const content = document.getElementById('content');
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageData = data.slice(start, end);
+            const totalPages = Math.ceil(data.length / itemsPerPage);
+
+            const allKeys = Object.keys(pageData[0] || {});
+
+            const storageKey = `selectedFields_${type}`;
+            let selectedKeys = JSON.parse(localStorage.getItem(storageKey) || 'null');
+
+            if (!selectedKeys) {
+                if (type === 'salesinvoices') {
+                    selectedKeys = ['InvoiceReference', 'Date', 'InvoiceNumber', 'Description', 'BaseInvoiceAmount', 'TotalPayableAmount', 'DueDate', 'Status'];
+                } else if (type === 'salesinvoicelines') {
+                    selectedKeys = ['InvoiceReference', 'Description', 'Quantity', 'Price', 'NetAmount', 'TaxAmount', 'LineTotalPayableAmount'];
+                } else {
+                    selectedKeys = allKeys.slice(0, 15);
+                }
+                localStorage.setItem(storageKey, JSON.stringify(selectedKeys));
+            }
+
+            let html = `
+                <button class="back-button" onclick="loadAdmin(currentAdmin)">Back to ${currentAdmin.name}</button>
+                <h2>${type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</h2>
+                <p style="color: #7f8c8d; margin-bottom: 20px;">Showing ${start + 1}-${Math.min(end, data.length)} of ${data.length} items</p>
+
+                <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+                    <h3 style="margin-bottom: 10px; font-size: 14px;">Select Fields to Display:</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto;">
+            `;
+
+            allKeys.forEach(key => {
+                const isChecked = selectedKeys.includes(key);
+                html += `
+                    <label style="display: flex; align-items: center; font-size: 12px; cursor: pointer;">
+                        <input type="checkbox" ${isChecked ? 'checked' : ''}
+                               onchange="toggleField('${key}', '${type}')"
+                               style="margin-right: 6px;">
+                        ${key}
+                    </label>
+                `;
+            });
+
+            html += `
+                    </div>
+                    <button onclick="selectAllFields('${type}')" style="margin-top: 10px; padding: 5px 10px; font-size: 12px;">Select All</button>
+                    <button onclick="deselectAllFields('${type}')" style="margin-top: 10px; padding: 5px 10px; font-size: 12px; margin-left: 5px;">Deselect All</button>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                ${selectedKeys.map(k => `<th>${k}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            pageData.forEach(item => {
+                html += '<tr>';
+                selectedKeys.forEach(key => {
+                    let value = item[key];
+                    if (value === null || value === undefined) value = '';
+                    else if (typeof value === 'object') value = JSON.stringify(value).substring(0, 50);
+                    else value = String(value).substring(0, 100);
+                    html += `<td title="${String(item[key] || '').substring(0, 200)}">${value}</td>`;
+                });
+                html += '</tr>';
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            if (totalPages > 1) {
+                html += '<div class="pagination">';
+                for (let i = 1; i <= totalPages; i++) {
+                    html += `<button class="${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+                }
+                html += '</div>';
+            }
+
+            content.innerHTML = html;
+        }
+
+        function toggleField(field, type) {
+            const storageKey = `selectedFields_${type}`;
+            let selectedKeys = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            const index = selectedKeys.indexOf(field);
+            if (index > -1) {
+                selectedKeys.splice(index, 1);
+            } else {
+                selectedKeys.push(field);
+            }
+            localStorage.setItem(storageKey, JSON.stringify(selectedKeys));
+            renderDataTable(currentData, type);
+        }
+
+        function selectAllFields(type) {
+            if (!currentData || currentData.length === 0) return;
+            const allKeys = Object.keys(currentData[0] || {});
+            const storageKey = `selectedFields_${type}`;
+            localStorage.setItem(storageKey, JSON.stringify(allKeys));
+            renderDataTable(currentData, type);
+        }
+
+        function deselectAllFields(type) {
+            const storageKey = `selectedFields_${type}`;
+            localStorage.setItem(storageKey, JSON.stringify([]));
+            renderDataTable(currentData, type);
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            if (currentData) {
+                const type = document.querySelector('h2').textContent.toLowerCase().replace(/\s+/g, '_');
+                renderDataTable(currentData, type);
+            }
+        }
+
+        document.getElementById('adminSearch').addEventListener('input', (e) => {
+            const search = e.target.value.toLowerCase();
+            document.querySelectorAll('.admin-item').forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(search) ? 'block' : 'none';
+            });
+        });
+    </script>
+</body>
+</html>

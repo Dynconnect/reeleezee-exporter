@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reeleezee-exporter"
+version = "1.0.0"
+description = "Export all your data from Reeleezee (Exact) accounting platform via their REST API"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+authors = [
+    {name = "Sinisa Devcic", email = "sinisa@dynconnect.com"},
+]
+maintainers = [
+    {name = "Dynconnect", email = "sinisa@dynconnect.com"},
+]
+keywords = ["reeleezee", "exact", "accounting", "export", "api", "dutch", "boekhouding"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Accounting",
+]
+
+dependencies = [
+    "requests>=2.31.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+web = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.29.0",
+    "rq>=1.16.0",
+    "redis>=5.0.0",
+    "cryptography>=42.0.0",
+    "python-multipart>=0.0.9",
+]
+dev = [
+    "pytest>=7.0.0",
+    "flake8>=6.0.0",
+    "httpx>=0.27.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/dynconnect/reeleezee-exporter"
+Repository = "https://github.com/dynconnect/reeleezee-exporter"
+Issues = "https://github.com/dynconnect/reeleezee-exporter/issues"
+
+[project.scripts]
+reeleezee-export = "reeleezee_exporter.export_data:main"
+reeleezee-download = "reeleezee_exporter.download_files:main"
+reeleezee-explore = "reeleezee_exporter.explore_api:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

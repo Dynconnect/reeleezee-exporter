@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reeleezee Data Viewer - Advanced</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .header { background: #2c3e50; color: white; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header h1 { font-size: 24px; margin-bottom: 10px; }
+        .config-bar {
+            background: #ecf0f1; padding: 15px 20px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .config-bar label { font-weight: 600; color: #2c3e50; }
+        .config-bar input {
+            padding: 8px 12px; border: 1px solid #bdc3c7; border-radius: 4px;
+            font-size: 14px; flex: 1; max-width: 500px;
+        }
+        .config-bar button {
+            padding: 8px 16px; background: #3498db; color: white;
+            border: none; border-radius: 4px; cursor: pointer; font-size: 14px;
+        }
+        .config-bar button:hover { background: #2980b9; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .year-selector {
+            background: white; border-radius: 8px; padding: 20px;
+            margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .year-selector h2 { margin-bottom: 15px; color: #2c3e50; }
+        .year-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+        .year-button {
+            padding: 12px 24px; background: #3498db; color: white;
+            border: none; border-radius: 4px; cursor: pointer;
+            font-size: 16px; transition: background 0.2s;
+        }
+        .year-button:hover { background: #2980b9; }
+        .year-button.active { background: #27ae60; }
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .dashboard.three-columns { grid-template-columns: 1fr 1fr 1fr; }
+        .card {
+            background: white; border-radius: 8px; padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card h3 { color: #2c3e50; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        .invoice-list { max-height: 400px; overflow-y: auto; }
+        .invoice-item {
+            padding: 12px; border: 1px solid #ecf0f1; border-radius: 4px;
+            margin-bottom: 8px; cursor: pointer; transition: all 0.2s;
+        }
+        .invoice-item:hover { background: #f8f9fa; border-color: #3498db; }
+        .invoice-item.selected { background: #e8f5e9; border-color: #27ae60; }
+        .invoice-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .invoice-ref { font-weight: 600; color: #2c3e50; }
+        .invoice-amount { font-weight: 600; color: #27ae60; }
+        .invoice-details { font-size: 12px; color: #7f8c8d; }
+        .detail-view {
+            background: white; border-radius: 8px; padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 20px;
+        }
+        .detail-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #ecf0f1;
+        }
+        .back-button {
+            padding: 10px 20px; background: #3498db; color: white;
+            border: none; border-radius: 4px; cursor: pointer; font-size: 14px;
+        }
+        .back-button:hover { background: #2980b9; }
+        .detail-section { margin-bottom: 30px; }
+        .detail-section h4 {
+            color: #2c3e50; margin-bottom: 15px;
+            padding-bottom: 8px; border-bottom: 1px solid #ecf0f1;
+        }
+        .line-items-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .line-items-table th, .line-items-table td {
+            padding: 12px; text-align: left; border-bottom: 1px solid #ecf0f1;
+        }
+        .line-items-table th { background: #34495e; color: white; font-weight: 600; }
+        .line-items-table tr:hover { background: #f8f9fa; }
+        .info-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px; margin-top: 15px;
+        }
+        .info-item { padding: 12px; background: #f8f9fa; border-radius: 4px; }
+        .info-label { font-size: 12px; color: #7f8c8d; margin-bottom: 4px; }
+        .info-value { font-size: 16px; font-weight: 600; color: #2c3e50; }
+        .bank-connection {
+            padding: 8px 12px; background: #e8f5e9; border-radius: 4px;
+            margin-top: 8px; font-size: 12px;
+        }
+        .loading { text-align: center; padding: 40px; color: #7f8c8d; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #7f8c8d; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Reeleezee Data Viewer</h1>
+        <p>Navigate by year, view invoices, line items, and bank connections</p>
+    </div>
+
+    <div class="config-bar">
+        <label for="exportPath">Export path:</label>
+        <input type="text" id="exportPath" placeholder="e.g. exports/reeleezee_export_20250101_120000/">
+        <button onclick="loadFromPath()">Load</button>
+    </div>
+
+    <div class="container" id="container">
+        <div class="empty-state">
+            <h3>Enter the path to your export directory above</h3>
+            <p>Point to the directory containing index.json from your Reeleezee export</p>
+        </div>
+    </div>
+
+    <script>
+        let exportBasePath = null;
+        let mainIndex = null;
+        let yearData = {};
+        let currentYear = null;
+        let currentInvoice = null;
+
+        function loadFromPath() {
+            const path = document.getElementById('exportPath').value.trim();
+            if (!path) { alert('Please enter the export directory path'); return; }
+            exportBasePath = path.endsWith('/') ? path : path + '/';
+            loadData();
+        }
+
+        async function loadData() {
+            if (!exportBasePath) return;
+            try {
+                const r = await fetch(`${exportBasePath}index.json`);
+                mainIndex = await r.json();
+                yearData = {};
+                currentYear = null;
+                currentInvoice = null;
+
+                // Support both year-based and admin-based index formats
+                if (mainIndex.years) {
+                    renderYearSelector();
+                } else if (mainIndex.administrations) {
+                    // Flat format - load administration data directly
+                    await loadAdminData();
+                }
+            } catch (error) {
+                document.getElementById('container').innerHTML =
+                    '<div class="empty-state"><h3>Error loading data</h3><p>' + error.message + '</p></div>';
+            }
+        }
+
+        function getAvailableYears() {
+            if (mainIndex && mainIndex.years) {
+                return mainIndex.years.sort((a, b) => b - a);
+            }
+            return [];
+        }
+
+        async function loadAdminData() {
+            // For flat (non-year-based) exports, show administrations list
+            const container = document.getElementById('container');
+            const admins = mainIndex.administrations || [];
+
+            let html = '<div class="year-selector"><h2>Administrations</h2><div class="year-buttons">';
+            admins.forEach(admin => {
+                html += `<button class="year-button" onclick="loadAdminFiles('${admin.directory}')">${admin.name} (${admin.total_items} items)</button>`;
+            });
+            html += '</div></div>';
+            container.innerHTML = html;
+        }
+
+        async function loadAdminFiles(directory) {
+            try {
+                const r = await fetch(`${exportBasePath}${directory}/index.json`);
+                const adminIndex = await r.json();
+                const files = adminIndex.files || {};
+
+                const container = document.getElementById('container');
+                let html = `<div class="year-selector"><h2>${adminIndex.name}</h2><div class="year-buttons">`;
+
+                for (const [key, file] of Object.entries(files)) {
+                    html += `<button class="year-button" onclick="loadDataFile('${directory}/${file.filename}', '${key}')">${key} (${file.count})</button>`;
+                }
+                html += '</div></div><div id="dataContent"></div>';
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading admin data:', error);
+            }
+        }
+
+        async function loadDataFile(path, type) {
+            try {
+                const r = await fetch(`${exportBasePath}${path}`);
+                const data = await r.json();
+                const items = data.data || [];
+                if (items.length === 0) return;
+
+                const keys = Object.keys(items[0]).slice(0, 12);
+                let html = `<div class="detail-view"><h2>${type} (${items.length} items)</h2>`;
+                html += '<div style="overflow-x:auto"><table class="line-items-table"><thead><tr>';
+                keys.forEach(k => html += `<th>${k}</th>`);
+                html += '</tr></thead><tbody>';
+                items.slice(0, 100).forEach(item => {
+                    html += '<tr>';
+                    keys.forEach(k => {
+                        let v = item[k];
+                        if (v === null || v === undefined) v = '';
+                        else if (typeof v === 'object') v = JSON.stringify(v).substring(0, 50);
+                        else v = String(v).substring(0, 80);
+                        html += `<td>${v}</td>`;
+                    });
+                    html += '</tr>';
+                });
+                html += '</tbody></table></div>';
+                if (items.length > 100) html += `<p style="margin-top:10px;color:#7f8c8d">Showing 100 of ${items.length} items</p>`;
+                html += '</div>';
+
+                document.getElementById('dataContent').innerHTML = html;
+            } catch (error) {
+                console.error('Error loading data file:', error);
+            }
+        }
+
+        async function loadYearData(year) {
+            if (yearData[year]) return yearData[year];
+            try {
+                const yir = await fetch(`${exportBasePath}${year}/index.json`);
+                const yearIndex = await yir.json();
+
+                const salesInvoices = await loadAllInvoices(`${exportBasePath}${year}/sales_invoices/`);
+                const purchaseInvoices = await loadAllInvoices(`${exportBasePath}${year}/purchase_invoices/`);
+
+                let bankImports = [];
+                try {
+                    const bir = await fetch(`${exportBasePath}${year}/bank_imports.json`);
+                    const bid = await bir.json();
+                    bankImports = bid.data || [];
+                } catch (e) {}
+
+                yearData[year] = {
+                    index: yearIndex,
+                    salesInvoices, purchaseInvoices, bankImports,
+                };
+                return yearData[year];
+            } catch (error) {
+                console.error(`Error loading year ${year}:`, error);
+                return null;
+            }
+        }
+
+        async function loadAllInvoices(directoryPath) {
+            try {
+                const response = await fetch(directoryPath);
+                const text = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(text, 'text/html');
+                const links = Array.from(doc.querySelectorAll('a'));
+                const files = links.map(l => l.getAttribute('href'))
+                    .filter(h => h && h.endsWith('.json') && !h.includes('index.json'));
+                const promises = files.map(f =>
+                    fetch(`${directoryPath}${f}`).then(r => r.json()).catch(() => null)
+                );
+                return (await Promise.all(promises)).filter(x => x !== null);
+            } catch (error) { return []; }
+        }
+
+        async function loadInvoiceLines(invoiceId, year) {
+            try {
+                const linesPath = `${exportBasePath}${year}/sales_invoice_lines/`;
+                const allLines = await loadAllInvoices(linesPath);
+                return allLines.filter(line => line.InvoiceId === invoiceId);
+            } catch (error) { return []; }
+        }
+
+        async function renderYearSelector() {
+            const years = getAvailableYears();
+            const container = document.getElementById('container');
+            let html = '<div class="year-selector"><h2>Select Year</h2><div class="year-buttons">';
+            years.forEach(year => {
+                const cls = currentYear === year ? 'active' : '';
+                html += `<button class="year-button ${cls}" onclick="selectYear(${year})">${year}</button>`;
+            });
+            html += '</div></div>';
+
+            if (currentYear) html += await renderYearView(currentYear);
+            container.innerHTML = html;
+        }
+
+        async function selectYear(year) {
+            currentYear = year;
+            currentInvoice = null;
+            document.getElementById('container').innerHTML = '<div class="loading">Loading year data...</div>';
+            const data = await loadYearData(year);
+            if (data) renderYearSelector();
+            else document.getElementById('container').innerHTML = '<div class="empty-state"><h3>Error loading year data</h3></div>';
+        }
+
+        async function renderYearView(year) {
+            const data = yearData[year];
+            if (!data) return '<div class="empty-state">Loading...</div>';
+
+            const si = data.salesInvoices || [];
+            const pi = data.purchaseInvoices || [];
+            const bi = data.bankImports || [];
+            const hasBi = bi.length > 0;
+            const gridClass = hasBi ? 'three-columns' : '';
+
+            let html = `<div class="dashboard ${gridClass}">`;
+
+            // Sales invoices
+            html += `<div class="card"><h3>Sales Invoices (${si.length})</h3><div class="invoice-list">`;
+            if (si.length === 0) html += '<div class="empty-state">No sales invoices</div>';
+            else si.forEach(inv => {
+                const ref = inv.InvoiceReference || inv.Reference || 'N/A';
+                const amount = inv.BaseInvoiceAmount || inv.TotalPayableAmount || 0;
+                const date = inv.Date || inv.BookDate || '';
+                const desc = (inv.Description || '').substring(0, 50);
+                const sel = currentInvoice?.id === inv.id ? 'selected' : '';
+                html += `<div class="invoice-item ${sel}" onclick="viewSalesInvoice('${inv.id}', ${year})">
+                    <div class="invoice-header"><span class="invoice-ref">${ref}</span>
+                    <span class="invoice-amount">EUR ${amount.toFixed(2)}</span></div>
+                    <div class="invoice-details">${date} - ${desc}</div></div>`;
+            });
+            html += '</div></div>';
+
+            // Purchase invoices
+            html += `<div class="card"><h3>Purchase Invoices (${pi.length})</h3><div class="invoice-list">`;
+            if (pi.length === 0) html += '<div class="empty-state">No purchase invoices</div>';
+            else pi.forEach(inv => {
+                const ref = inv.InvoiceReference || inv.Reference || inv.ReceiptNumber || 'N/A';
+                const amount = inv.BaseInvoiceAmount || inv.TotalPayableAmount || 0;
+                const date = inv.Date || inv.BookDate || '';
+                const desc = (inv.Description || '').substring(0, 50);
+                const sel = currentInvoice?.id === inv.id ? 'selected' : '';
+                html += `<div class="invoice-item ${sel}" onclick="viewPurchaseInvoice('${inv.id}', ${year})">
+                    <div class="invoice-header"><span class="invoice-ref">${ref}</span>
+                    <span class="invoice-amount">EUR ${Math.abs(amount).toFixed(2)}</span></div>
+                    <div class="invoice-details">${date} - ${desc}</div></div>`;
+            });
+            html += '</div></div>';
+
+            // Bank imports
+            if (hasBi) {
+                html += `<div class="card"><h3>Bank Imports (${bi.length})</h3><div class="invoice-list">`;
+                bi.forEach(imp => {
+                    const fn = imp.FileName || 'Bank Import';
+                    const date = imp.Date || imp.CreateDate || '';
+                    const status = getBankImportStatusText(imp.BankImportStatus);
+                    html += `<div class="invoice-item" onclick="viewBankImport('${imp.id}', ${year})">
+                        <div class="invoice-header"><span class="invoice-ref">${fn}</span>
+                        <span style="font-size:11px;color:#7f8c8d">${status}</span></div>
+                        <div class="invoice-details">${date} - ${imp.ImportedLines||0}/${imp.CompletedLines||0} lines</div></div>`;
+                });
+                html += '</div></div>';
+            }
+            html += '</div>';
+
+            if (currentInvoice) {
+                if (currentInvoice.type === 'bankimport') html += await renderBankImportDetail(currentInvoice, year);
+                else html += await renderInvoiceDetail(currentInvoice, year);
+            }
+            return html;
+        }
+
+        async function viewSalesInvoice(id, year) {
+            const inv = yearData[year]?.salesInvoices?.find(i => i.id === id);
+            if (!inv) return;
+            currentInvoice = { ...inv, type: 'sales' };
+            await renderYearSelector();
+            setTimeout(() => document.querySelector('.detail-view')?.scrollIntoView({ behavior: 'smooth' }), 100);
+        }
+
+        async function viewPurchaseInvoice(id, year) {
+            const inv = yearData[year]?.purchaseInvoices?.find(i => i.id === id);
+            if (!inv) return;
+            currentInvoice = { ...inv, type: 'purchase' };
+            await renderYearSelector();
+            setTimeout(() => document.querySelector('.detail-view')?.scrollIntoView({ behavior: 'smooth' }), 100);
+        }
+
+        async function renderInvoiceDetail(invoice, year) {
+            if (invoice.type === 'bankimport') return await renderBankImportDetail(invoice, year);
+            const isSales = invoice.type === 'sales';
+            const lines = isSales ? await loadInvoiceLines(invoice.id, year) : [];
+
+            let html = `<div class="detail-view"><div class="detail-header"><div>
+                <h2>${invoice.InvoiceReference || invoice.Reference || 'Invoice'}</h2>
+                <p style="color:#7f8c8d;margin-top:5px">${invoice.Date || ''} - ${isSales ? 'Sales' : 'Purchase'} Invoice</p>
+                </div><button class="back-button" onclick="closeDetail()">Back to List</button></div>
+                <div class="detail-section"><h4>Invoice Information</h4><div class="info-grid">
+                <div class="info-item"><div class="info-label">Invoice Number</div><div class="info-value">${invoice.InvoiceNumber || invoice.InvoiceReference || 'N/A'}</div></div>
+                <div class="info-item"><div class="info-label">Date</div><div class="info-value">${invoice.Date || invoice.BookDate || 'N/A'}</div></div>
+                <div class="info-item"><div class="info-label">Due Date</div><div class="info-value">${invoice.DueDate || 'N/A'}</div></div>
+                <div class="info-item"><div class="info-label">Total</div><div class="info-value">EUR ${(invoice.BaseInvoiceAmount||invoice.TotalPayableAmount||0).toFixed(2)}</div></div>
+                <div class="info-item"><div class="info-label">Net</div><div class="info-value">EUR ${(invoice.BaseNetAmount||invoice.TotalNetAmount||0).toFixed(2)}</div></div>
+                <div class="info-item"><div class="info-label">Tax</div><div class="info-value">EUR ${(invoice.BaseTaxAmount||invoice.TotalTaxAmount||0).toFixed(2)}</div></div>
+                <div class="info-item"><div class="info-label">Status</div><div class="info-value">${getStatusText(invoice.Status)}</div></div>
+                <div class="info-item"><div class="info-label">Paid</div><div class="info-value">EUR ${(invoice.BasePaidAmount||invoice.TotalPaidAmount||0).toFixed(2)}</div></div>
+                </div>${invoice.Description ? `<p style="margin-top:15px"><strong>Description:</strong> ${invoice.Description}</p>` : ''}</div>`;
+
+            if (isSales && lines.length > 0) {
+                html += `<div class="detail-section"><h4>Order Lines (${lines.length})</h4>
+                    <table class="line-items-table"><thead><tr>
+                    <th>Description</th><th>Quantity</th><th>Price</th><th>Net</th><th>Tax</th><th>Total</th>
+                    </tr></thead><tbody>`;
+                lines.forEach(l => {
+                    html += `<tr><td>${l.Description||''}</td><td>${(l.Quantity||0).toFixed(2)}</td>
+                        <td>EUR ${(l.Price||0).toFixed(2)}</td><td>EUR ${(l.NetAmount||l.BaseNetAmount||0).toFixed(2)}</td>
+                        <td>EUR ${(l.TaxAmount||l.BaseTaxAmount||0).toFixed(2)}</td>
+                        <td>EUR ${(l.LineTotalPayableAmount||l.AfterDiscountAmount||0).toFixed(2)}</td></tr>`;
+                });
+                html += '</tbody></table></div>';
+            }
+            html += '</div>';
+            return html;
+        }
+
+        async function viewBankImport(id, year) {
+            const imp = yearData[year]?.bankImports?.find(i => i.id === id);
+            if (!imp) return;
+            currentInvoice = { ...imp, type: 'bankimport' };
+            await renderYearSelector();
+            setTimeout(() => document.querySelector('.detail-view')?.scrollIntoView({ behavior: 'smooth' }), 100);
+        }
+
+        async function renderBankImportDetail(bankImport, year) {
+            let html = `<div class="detail-view"><div class="detail-header"><div>
+                <h2>${bankImport.FileName || 'Bank Import'}</h2>
+                <p style="color:#7f8c8d;margin-top:5px">${bankImport.Date||bankImport.CreateDate||''} - Bank Import</p>
+                </div><button class="back-button" onclick="closeDetail()">Back to List</button></div>
+                <div class="detail-section"><h4>Import Information</h4><div class="info-grid">
+                <div class="info-item"><div class="info-label">File</div><div class="info-value">${bankImport.FileName||'N/A'}</div></div>
+                <div class="info-item"><div class="info-label">Date</div><div class="info-value">${bankImport.Date||bankImport.CreateDate||'N/A'}</div></div>
+                <div class="info-item"><div class="info-label">Status</div><div class="info-value">${getBankImportStatusText(bankImport.BankImportStatus)}</div></div>
+                <div class="info-item"><div class="info-label">Lines</div><div class="info-value">${bankImport.ImportedLines||0} / ${bankImport.CompletedLines||0}</div></div>
+                </div></div></div>`;
+            return html;
+        }
+
+        async function closeDetail() {
+            currentInvoice = null;
+            await renderYearSelector();
+        }
+
+        function getStatusText(s) {
+            return {0:'Draft',1:'Open',2:'Partially Paid',3:'Paid',4:'Cancelled'}[s] || `Status ${s}`;
+        }
+        function getBankImportStatusText(s) {
+            return {0:'Pending',1:'Processing',2:'Completed',3:'Error'}[s] || `Status ${s}`;
+        }
+    </script>
+</body>
+</html>
